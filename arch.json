@@ -1,0 +1,55 @@
+{
+    "variables": {
+        "password": "changeme",
+        "iso_url": "https://mirrors.kernel.org/archlinux/iso/{{isotime \"2006.01\"}}.01/archlinux-{{isotime \"2006.01\"}}.01-x86_64.iso",
+        "iso_checksum_url": "https://mirrors.kernel.org/archlinux/iso/{{isotime \"2006.01\"}}.01/sha1sums.txt",
+        "iso_checksum_type": "sha1",
+        "ssh_timeout": "20m",
+        "country": "RU",
+        "cpus": "1",
+        "memory": "2048",
+        "uefi_image_path": "/usr/share/ovmf/x64/OVMF_CODE.fd"
+    },
+    "builders": [
+        {
+            "type": "qemu",
+            "iso_url": "{{ user `iso_url` }}",
+            "iso_checksum_url": "{{ user `iso_checksum_url` }}",
+            "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+            "http_directory": "srv",
+            "boot_wait": "5s",
+            "format": "qcow2",
+            "boot_command": [
+                "<enter><wait10><wait10><wait10>",
+                "passwd root<enter><wait1>{{ user `password` }}<enter><wait1>{{ user `password` }}<enter>",
+                "systemctl start sshd<enter><wait5>"
+            ],
+            "disk_size": 8192,
+            "ssh_username": "root",
+            "ssh_password": "{{ user `password` }}",
+            "ssh_timeout": "{{ user `ssh_timeout` }}",
+            "shutdown_command": "systemctl poweroff",
+            "cpus": "{{ user `cpus` }}",
+            "memory": "{{ user `memory` }}",
+            "qemuargs": [
+                [
+                    "-bios",
+                    "{{ user `uefi_image_path` }}"
+                ]
+            ]
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "execute_command": "{{ .Vars }} COUNTRY={{ user `country` }} bash '{{ .Path }}'",
+            "expect_disconnect": true,
+            "script": "scripts/install-base.sh"
+        },
+        {
+            "type": "shell",
+            "execute_command": "{{ .Vars }} bash '{{ .Path }}'",
+            "script": "scripts/cleanup.sh"
+        }
+    ]
+}
